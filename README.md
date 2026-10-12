@@ -47,4 +47,13 @@ Read `RAW-SCHEMA.md` before parsing. Two things worth knowing up front:
   in practice Netflix, on 8,328 of the 8,329 devices that have one - and `PowerFeature`'s
   `ConnectedAppPowerOnDelay` is how long after power-on that takes.
 
-This repository is archived: it is a record of one capture, and does not change.
+## The static API
+
+`build_api.py` turns the capture into small files, so an application can look up one
+device without fetching everything; they are in `docs/api/v1/` and published with GitHub
+Pages at <https://harmonic-afterglow.github.io/harmony-ir-archive/api/v1/>. Each is found by
+its address alone - see `manifest.json` and `build_api.py` for the layout. Records keep
+Logitech's field names and values, without nulls, the service's bookkeeping, or fields the
+schema notes find duplicated or constant. Rebuilding gives the same bytes.
+
+The capture itself does not change: it is a record of what the service answered on one day.

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Harmony IR archive</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:42rem;margin:2rem auto;padding:0 1rem}code{background:#eee;padding:0 .2em}</style>
+<h1>Harmony IR archive</h1>
+<p>Logitech's Harmony device and IR data, as captured on 2026-09-02, served as static JSON for
+<a href="https://github.com/harmonic-afterglow/afterglow">Afterglow</a> and anyone else.
+The source and how this is built: <a href="https://github.com/harmonic-afterglow/harmony-ir-archive">harmonic-afterglow/harmony-ir-archive</a>.</p>
+<ul>
+<li><a href="api/v1/manifest.json"><code>api/v1/manifest.json</code></a> - counts, the capture's checksum, the layout</li>
+<li><a href="api/v1/manufacturers.json"><code>api/v1/manufacturers.json</code></a> - every manufacturer</li>
+<li><code>api/v1/manufacturers/&lt;slug&gt;.json</code> - a manufacturer's devices</li>
+<li><code>api/v1/devices/&lt;id % 1024, 3 hex digits&gt;.json.gz</code> - devices, by id</li>
+<li><code>api/v1/codesets/&lt;first 3 hex digits&gt;.json.gz</code> - command sets, by hash</li>
+<li><a href="api/v1/protocols.json"><code>api/v1/protocols.json</code></a> - all 684 IR protocols</li>
+</ul>
