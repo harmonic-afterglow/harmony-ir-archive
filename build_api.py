@@ -10,7 +10,9 @@ Pages, raw.githubusercontent.com, jsDelivr - each found by its address alone:
     manifest.json                     counts, the capture's checksum, these paths
     manufacturers.json                [{"name", "slug", "devices"}]
     manufacturers/<slug>.json         [{"id", "model", "type", "name"}] - its devices
-    devices/<id % 1024, 3 hex>.json.gz   {id: device} - a device's profile and features
+    devices/<id % 1024, 3 hex>.json.gz   {id: {"device", "features": {kind: [feature]},
+                                                "codeset", "catalog"}} - a device's profile,
+                                                features, and its catalogue row's extras
     codesets/<first 3 hex>.json.gz       {codeset: [command, ...]} - shared command sets
     protocols.json                    {protocol id: definition} - all 684, verbatim
 
@@ -23,6 +25,7 @@ constant. An action list's `Order`, not its position, is its order (RAW-SCHEMA.m
 """
 from __future__ import annotations
 
+import argparse
 import gzip
 import hashlib
 import json
@@ -105,7 +108,79 @@ def _order(key: str):
     return (0, int(key), "") if key.isdigit() else (1, 0, key)
 
 
+class Pronto:
+    """Pronto Hex for each command, from pickysysadmin's curated tree (CC0), which renders
+    every infrared command from its key code and protocol. The capture has none: Logitech's
+    service sent key codes, and its remotes rendered them. Found by device: the curated
+    device names its code set, whose commands are matched by name and key code."""
+
+    def __init__(self, tree: Path | None):
+        self.tree = tree
+        self.paths, self.cache = {}, {}
+        self.missing = 0
+        if tree is None:
+            return
+        for index in tree.glob("devices/*/index.json"):
+            for entry in json.loads(index.read_text()):
+                self.paths[entry["id"]] = index.parent / entry["f"]
+
+    def commands(self, device_id: int) -> dict:
+        """{(name, keycode): (pronto, prontoRepeat)} for one device's commands."""
+        path = self.paths.get(device_id)
+        if path is None:
+            return {}
+        codeset = json.loads(path.read_text()).get("codeset")
+        if not codeset:
+            return {}
+        if codeset in self.cache:
+            return self.cache[codeset]
+        out = self.cache[codeset] = {}
+        for command in json.loads((self.tree / codeset).read_text())["commands"]:
+            if command.get("pronto"):
+                out[(command.get("name"), command.get("keycode"))] = (
+                    command["pronto"], command.get("prontoRepeat"))
+        return out
+
+    def add(self, device_id: int, commands: list[dict]):
+        """Give each infrared command its Pronto, as `pronto` (and `prontoRepeat`): lower
+        case, since they are not Logitech's fields."""
+        if self.tree is None:
+            return
+        known = self.commands(device_id)
+        for command in commands:
+            found = known.get((command.get("Name"), command.get("KeyCode")))
+            if found:
+                command["pronto"] = found[0]
+                if found[1]:
+                    command["prontoRepeat"] = found[1]
+            elif command.get("KeyCode"):
+                self.missing += 1
+
+
+# What the catalogue (GetGlobalDevices) says that the device record does not.
+CATALOG_FIELDS = ("MinRepeats", "PrimaryBrandId", "PrimaryManufacturerAlias",
+                  "PrimaryModelAlias", "GlobalLanguages", "DefaultGlobalLanguageVersionId")
+
+
+def catalog() -> dict[int, dict]:
+    """Each device's catalogue row, the fields the device record lacks."""
+    out = {}
+    with gzip.open(HERE / "catalog_raw.jsonl.gz", "rt", encoding="utf-8") as f:
+        for line in f:
+            row = json.loads(line)
+            found = clean({key: row.get(key) for key in CATALOG_FIELDS})
+            if found:
+                out[row["Id"]] = found
+    return out
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--pronto-from", type=Path, metavar="CURATED_TREE",
+                        help="a checkout of pickysysadmin/logitech-harmony-ir-archive")
+    args = parser.parse_args()
+    pronto = Pronto(args.pronto_from)
+    rows = catalog()
     parts = json.loads((HERE / "device_features" / "parts.json").read_text())
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -123,6 +198,7 @@ def main():
                 found = [{key: command[key] for key in COMMAND_FIELDS
                           if command.get(key) not in (None, False)}
                          for command in record.get("commands") or []]
+                pronto.add(device_id, found)
                 body = canonical(found)
                 codeset = hashlib.sha256(body).hexdigest()[:16]
                 if codeset not in seen:
@@ -130,13 +206,17 @@ def main():
                     commands += len(found)
                     _gather(staging, "c" + codeset[:CODESET_PREFIX], codeset, body, files)
                 device = clean(record["device"])
-                features = {}
+                # a device can have several of a kind - a state each, an output each - so
+                # every kind is a list
+                features = defaultdict(list)
                 for feature in clean(record.get("features") or []):
                     kind = feature.pop("__type").split(":")[0]
-                    features[kind] = feature
+                    features[kind].append(feature)
+                entry = {"device": device, "features": features, "codeset": codeset}
+                if device_id in rows:
+                    entry["catalog"] = rows[device_id]
                 _gather(staging, f"d{device_id % DEVICE_BUCKETS:03x}", str(device_id),
-                        canonical({"device": device, "features": features,
-                                   "codeset": codeset}), files)
+                        canonical(entry), files)
                 devices += 1
                 makers[device.get("Manufacturer") or ""].append({
                     "id": device_id, "model": device.get("Model"),
@@ -179,7 +259,8 @@ def main():
                    "manufacturer": "manufacturers/{slug}.json"},
         "device_buckets": DEVICE_BUCKETS, "codeset_prefix": CODESET_PREFIX,
     })
-    print(json.dumps(json.loads((OUT / "manifest.json").read_text())["counts"]))
+    print(json.dumps(json.loads((OUT / "manifest.json").read_text())["counts"]),
+          "commands without Pronto:", pronto.missing)
 
 
 if __name__ == "__main__":

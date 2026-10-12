@@ -54,6 +54,13 @@ device without fetching everything; they are in `docs/api/v1/` and published wit
 Pages at <https://harmonic-afterglow.github.io/harmony-ir-archive/api/v1/>. Each is found by
 its address alone - see `manifest.json` and `build_api.py` for the layout. Records keep
 Logitech's field names and values, without nulls, the service's bookkeeping, or fields the
-schema notes find duplicated or constant. Rebuilding gives the same bytes.
+schema notes find duplicated or constant; a device also carries the few fields only its
+catalogue row has (`catalog`), and every feature of a kind it has, as a list.
+
+The capture holds key codes, not waveforms - Logitech's remotes rendered them. So that a
+command can be sent without rendering it first, each infrared command also carries
+`pronto` (and `prontoRepeat`): Pronto Hex from pickysysadmin's curated tree, also CC0,
+matched by device, name and key code; `build_api.py --pronto-from <that tree>` adds them.
+Rebuilding gives the same bytes.
 
 The capture itself does not change: it is a record of what the service answered on one day.
