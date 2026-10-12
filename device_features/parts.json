@@ -1,0 +1,55 @@
+{
+  "source": "device_features_raw.jsonl.gz",
+  "uncompressed_sha256": "70f19efa778219544b676901a983a4d5e0cdc70df00976a5da74850694922122",
+  "lines": 276236,
+  "parts": [
+    {
+      "file": "device_features/device_features_raw.part-01.jsonl.gz",
+      "lines": 49670,
+      "first_id": 154,
+      "last_id": 50033,
+      "uncompressed_sha256": "23cc8ce8cfb578abbffe815dc9bda0a41ce83b4c873ae14d67be9fcfd64f0752",
+      "uncompressed_bytes": 1149986203
+    },
+    {
+      "file": "device_features/device_features_raw.part-02.jsonl.gz",
+      "lines": 54129,
+      "first_id": 50034,
+      "last_id": 104852,
+      "uncompressed_sha256": "fbc7bdac7e0b4f0d259d5f0945eb2abf9953cc010d9bfd547f90863218e3c5e5",
+      "uncompressed_bytes": 1149990349
+    },
+    {
+      "file": "device_features/device_features_raw.part-03.jsonl.gz",
+      "lines": 57605,
+      "first_id": 104853,
+      "last_id": 163283,
+      "uncompressed_sha256": "91db61e4ae171e0681596c2e491cd960ddad302540df58ab74b906c42e904684",
+      "uncompressed_bytes": 1149993497
+    },
+    {
+      "file": "device_features/device_features_raw.part-04.jsonl.gz",
+      "lines": 59643,
+      "first_id": 163284,
+      "last_id": 245027,
+      "uncompressed_sha256": "39e160af15b135fa00834739cfd17eac3da25f73ae635cd0789e61870573d11e",
+      "uncompressed_bytes": 1149997262
+    },
+    {
+      "file": "device_features/device_features_raw.part-05.jsonl.gz",
+      "lines": 54929,
+      "first_id": 245028,
+      "last_id": 523477,
+      "uncompressed_sha256": "d070f9288109af1a107323031c100b76c03fc4c556f838d733e02c3443142d09",
+      "uncompressed_bytes": 1149988737
+    },
+    {
+      "file": "device_features/device_features_raw.part-06.jsonl.gz",
+      "lines": 260,
+      "first_id": 523478,
+      "last_id": 523791,
+      "uncompressed_sha256": "87fa7b3249edca7cf0fa4414dd6b60f924652421a5f12c2bc7d5fe3cab6d5f87",
+      "uncompressed_bytes": 5376963
+    }
+  ]
+}
