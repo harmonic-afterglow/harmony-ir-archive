@@ -158,7 +158,7 @@ class Pronto:
 
 
 # What the catalogue (GetGlobalDevices) says that the device record does not.
-CATALOG_FIELDS = ("MinRepeats", "PrimaryBrandId", "PrimaryManufacturerAlias",
+CATALOG_FIELDS = ("DeviceType", "MinRepeats", "PrimaryBrandId", "PrimaryManufacturerAlias",
                   "PrimaryModelAlias", "GlobalLanguages", "DefaultGlobalLanguageVersionId")
 
 
