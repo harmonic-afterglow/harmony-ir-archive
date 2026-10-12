@@ -52,7 +52,9 @@ Read `RAW-SCHEMA.md` before parsing. Two things worth knowing up front:
 `build_api.py` turns the capture into small files, so an application can look up one
 device without fetching everything; they are in `docs/api/v1/` and published with GitHub
 Pages at <https://harmonic-afterglow.github.io/harmony-ir-archive/api/v1/>. Each is found by
-its address alone - see `manifest.json` and `build_api.py` for the layout. Records keep
+its address alone - see `manifest.json` and `build_api.py` for the layout. The
+manifest's `build` changes whenever any other file does: fetch the manifest afresh and
+the rest can be cached by it. Records keep
 Logitech's field names and values, without nulls, the service's bookkeeping, or fields the
 schema notes find duplicated or constant; a device also carries the few fields only its
 catalogue row has (`catalog`), and every feature of a kind it has, as a list.

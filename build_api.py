@@ -2,12 +2,16 @@
 """Build the static API in docs/api/v1 from the raw capture.
 
     python3 build_api.py
+    python3 build_api.py --stamp      only the manifest's build id, for files already built
 
 The capture is one stream of 276,236 records; an application looking up one device should
 not have to fetch it all. This writes small JSON files any static host can serve - GitHub
 Pages, raw.githubusercontent.com, jsDelivr - each found by its address alone:
 
-    manifest.json                     counts, the capture's checksum, these paths
+    manifest.json                     counts, the capture's checksum, these paths, and
+                                      `build`: a checksum of every other file, which a
+                                      reader caches by - the manifest is the one file to
+                                      fetch afresh
     manufacturers.json                [{"name", "slug", "devices"}]
     manufacturers/<slug>.json         [{"id", "model", "type", "name"}] - its devices
     devices/<id % 1024, 3 hex>.json.gz   {id: {"device", "features": {kind: [feature]},
@@ -174,11 +178,30 @@ def catalog() -> dict[int, dict]:
     return out
 
 
+def stamp():
+    """Set the manifest's `build`: a checksum over every other file's path and contents,
+    so one rebuilt file is a new build."""
+    whole = hashlib.sha256()
+    for path in sorted(OUT.rglob("*")):
+        if path.is_file() and path != OUT / "manifest.json":
+            whole.update(path.relative_to(OUT).as_posix().encode() + b"\0")
+            whole.update(hashlib.sha256(path.read_bytes()).digest())
+    manifest = json.loads((OUT / "manifest.json").read_text())
+    manifest["build"] = whole.hexdigest()[:16]
+    write(OUT / "manifest.json", manifest)
+    return manifest["build"]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pronto-from", type=Path, metavar="CURATED_TREE",
                         help="a checkout of pickysysadmin/logitech-harmony-ir-archive")
+    parser.add_argument("--stamp", action="store_true",
+                        help="only set the manifest's build id")
     args = parser.parse_args()
+    if args.stamp:
+        print("build", stamp())
+        return
     pronto = Pronto(args.pronto_from)
     rows = catalog()
     parts = json.loads((HERE / "device_features" / "parts.json").read_text())
@@ -259,6 +282,7 @@ def main():
                    "manufacturer": "manufacturers/{slug}.json"},
         "device_buckets": DEVICE_BUCKETS, "codeset_prefix": CODESET_PREFIX,
     })
+    stamp()
     print(json.dumps(json.loads((OUT / "manifest.json").read_text())["counts"]),
           "commands without Pronto:", pronto.missing)
 
