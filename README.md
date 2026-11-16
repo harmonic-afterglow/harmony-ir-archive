@@ -65,4 +65,13 @@ command can be sent without rendering it first, each infrared command also carri
 matched by device, name and key code; `build_api.py --pronto-from <that tree>` adds them.
 Rebuilding gives the same bytes.
 
+`build_index.py`, run after `build_api.py`, adds the way back: which command sets send a
+code, and which models use a set. A code is keyed by its Pronto's first frame read as a
+header, bits in one of two shapes and a trailer - its header's first mark in classes of
+250 us, how many bits, their value (`"36-32-20df10ef"`) - so a code recorded off a remote,
+which names no protocol, finds its sets too. `codes/<sha1(key)[:2]>.json.gz` holds key ->
+`[codeset, command name]`, `codeset_devices/<codeset[:3]>.json.gz` codeset -> `[id,
+manufacturer, model, type]`; the manifest's `code_key` is the version of the key's rules,
+which Afterglow's `ir_recognise.fingerprint` shares.
+
 The capture itself does not change: it is a record of what the service answered on one day.
