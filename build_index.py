@@ -13,7 +13,10 @@ back: which command sets send this code, and which models use those sets.
 A key is a command's first frame read from its Pronto: its header's first mark in classes
 of 250 us, how many bits it carries and their value - "36-32-20df10ef". It is protocol-free
 on purpose: a code someone recorded off a remote, which says nothing of its protocol, gives
-the same key as Logitech's rendering of it. Afterglow computes it with the same rules
+the same key as Logitech's rendering of it. A frame that is not a header, two bit shapes and
+a trailer - Samsung's 36-bit, RC6, XMP - is keyed by its pairs instead, "g36-37-0101...":
+the "g" keeps every key an earlier build gave as it was, so an Afterglow that predates it
+reads this index as before. Afterglow computes it with the same rules
 (src/afterglow/ir_recognise.py, `fingerprint`); the functions below are a copy and must
 stay one. `code_key` in the manifest is their version.
 
@@ -111,7 +114,8 @@ def _payload(frame, layout):
 
 
 def fingerprint(pulses):
-    for frame in _frames(list(pulses)):
+    frames = _frames(list(pulses))
+    for frame in frames:
         layout = _layout(frame)
         if layout is None:
             continue
@@ -120,7 +124,57 @@ def fingerprint(pulses):
             continue
         header = abs(layout["header"][0]) if layout["header"] else 0
         return f"{round(header / HEADER_CLASS_US)}-{layout['bits']}-{value:x}"
+    for frame in frames:
+        key = _symbols_key(frame)
+        if key:
+            return key
     return None
+
+
+# How many kinds of pair, and how few pairs, a frame keyed by its pairs may have.
+MOST_SYMBOLS, FEWEST_PAIRS = 8, 8
+
+
+def _symbols_key(frame):
+    """A frame the key above cannot read - bits split by a longer space (Samsung's
+    36-bit, the Flirc's), bi-phase (RC5, RC6), spaces of four lengths (XMP) - keyed by
+    its (mark, space) pairs: a header when its mark is longer than any other, then each
+    pair as the rank of its kind, the kinds ordered by length: ``"g<header class>-<pairs>-
+    <ranks>"``. The "g" keeps it from ever being a key the rules above give, so an index
+    built before it reads the same. None for a frame of too few pairs or too many kinds."""
+    body = frame[:-1] if frame and frame[-1] < 0 and -frame[-1] >= FRAME_GAP_US else frame
+    if not body or body[0] < 0:
+        return None
+    if len(body) % 2:                      # the last mark, its space the frame's gap
+        body = body + [-1]
+    pairs = [(body[i], body[i + 1]) for i in range(0, len(body), 2)]
+    if any(mark < 0 or space > 0 for mark, space in pairs):
+        return None
+    header = 0
+    if len(pairs) > 1 and all(pairs[0][0] > 1.5 * mark for mark, _space in pairs[1:]):
+        header = pairs[0][0]
+        pairs = pairs[1:]
+    if len(pairs) < FEWEST_PAIRS:
+        return None
+    kinds = []
+    of = []
+    for pair in pairs:
+        for number, kind in enumerate(kinds):
+            if _close(pair[0], kind[0][0]) and _close(pair[1], kind[0][1]):
+                kind.append(pair)
+                of.append(number)
+                break
+        else:
+            kinds.append([pair])
+            of.append(len(kinds) - 1)
+    if len(kinds) > MOST_SYMBOLS:
+        return None
+    means = [(sum(m for m, _s in kind) / len(kind), sum(-s for _m, s in kind) / len(kind))
+             for kind in kinds]
+    order = sorted(range(len(kinds)), key=lambda k: (means[k][0] + means[k][1], means[k][0]))
+    rank = {kind: place for place, kind in enumerate(order)}
+    ranks = "".join(str(rank[number]) for number in of)
+    return f"g{round(header / HEADER_CLASS_US)}-{len(pairs)}-{ranks}"
 # ---- end of the copy ----
 
 

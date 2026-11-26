@@ -69,7 +69,10 @@ Rebuilding gives the same bytes.
 code, and which models use a set. A code is keyed by its Pronto's first frame read as a
 header, bits in one of two shapes and a trailer - its header's first mark in classes of
 250 us, how many bits, their value (`"36-32-20df10ef"`) - so a code recorded off a remote,
-which names no protocol, finds its sets too. `codes/<sha1(key)[:2]>.json.gz` holds key ->
+which names no protocol, finds its sets too. A frame of another shape - bits split by a
+longer space (Samsung's 36-bit), bi-phase (RC6), four space lengths (XMP) - is keyed by its
+(mark, space) pairs as ranks of their kinds, `"g18-38-2221..."`; the `g` leaves every
+earlier key as it was. `codes/<sha1(key)[:2]>.json.gz` holds key ->
 `[codeset, command name]`, `codeset_devices/<codeset[:3]>.json.gz` codeset -> `[id,
 manufacturer, model, type]`; the manifest's `code_key` is the version of the key's rules,
 which Afterglow's `ir_recognise.fingerprint` shares.
